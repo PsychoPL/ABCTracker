@@ -1,0 +1,1017 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Sécurité : aucune connexion réseau autorisée. Tout le code est dans ce fichier. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'none'; connect-src 'none'; frame-src 'none'; worker-src 'self'; object-src 'none'; media-src 'none'; manifest-src 'self'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#11141c">
+<title>ABC Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --radius:12px;
+  --background:oklch(0.18 0.02 260);
+  --foreground:oklch(0.97 0.01 260);
+  --card:oklch(0.22 0.02 260);
+  --primary:oklch(0.645 0.22 27);
+  --primary-fg:oklch(0.99 0 0);
+  --secondary:oklch(0.28 0.02 260);
+  --muted:oklch(0.26 0.02 260);
+  --muted-fg:oklch(0.72 0.02 260);
+  --accent:oklch(0.30 0.03 260);
+  --border:oklch(1 0 0 / 10%);
+  --input:oklch(1 0 0 / 12%);
+  --sidebar:oklch(0.16 0.02 260);
+  --sidebar-accent:oklch(0.24 0.02 260);
+}
+*{box-sizing:border-box;border-color:var(--border)}
+html,body{margin:0;background:var(--background);color:var(--foreground);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.01em;margin:0}
+h2{font-size:1.1rem;margin:0}
+p{margin:0}
+.muted{color:var(--muted-fg)}
+.small{font-size:.8rem}
+.xs{font-size:.72rem}
+.bold{font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+.primary-text{color:var(--primary)}
+.hidden{display:none!important}
+
+/* Layout */
+.app{display:flex;min-height:100vh;min-height:100dvh}
+.sidebar{width:256px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;height:100dvh;transition:width .15s}
+.sidebar.collapsed{width:56px}
+.sidebar.collapsed .sb-text{display:none}
+.sb-head{display:flex;align-items:center;gap:10px;padding:16px}
+.logo{width:32px;height:32px;border-radius:8px;background:var(--primary);color:var(--primary-fg);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.sb-label{font-size:.72rem;color:var(--muted-fg);padding:8px 16px 4px}
+.sb-nav{display:flex;flex-direction:column;gap:2px;padding:0 8px}
+.sb-link{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--foreground);text-decoration:none;font-size:.9rem;cursor:pointer;border:0;background:none;text-align:left;width:100%}
+.sb-link:hover{background:var(--sidebar-accent)}
+.sb-link.active{background:var(--sidebar-accent);font-weight:600}
+.sb-link svg{width:16px;height:16px;flex-shrink:0}
+.sb-foot{margin-top:auto;padding:12px 8px}
+.main-col{flex:1;min-width:0;display:flex;flex-direction:column}
+header.top{height:calc(56px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top)!important;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding:0 12px;position:sticky;top:0;background:color-mix(in oklch,var(--background) 85%,transparent);backdrop-filter:blur(8px);z-index:20}
+main{flex:1;min-width:0}
+.page{padding:16px;max-width:1150px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.page.narrow{max-width:900px}
+.scrim{display:none}
+@media (max-width:767px){
+  .sidebar{position:fixed;left:0;top:0;z-index:50;transform:translateX(-100%);transition:transform .2s;width:270px}
+  .sidebar.collapsed{width:270px}
+  .sidebar.collapsed .sb-text{display:inline}
+  .sidebar.open{transform:none}
+  .scrim.show{display:block;position:fixed;inset:0;background:rgb(0 0 0 / 55%);z-index:40}
+  .hide-mobile{display:none!important}
+}
+@media (min-width:768px){.page{padding:24px}}
+
+/* Components */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.card-h{padding:18px 20px 6px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-t{font-size:1rem;font-weight:600;display:flex;align-items:center;gap:8px}
+.card-t svg{width:16px;height:16px;color:var(--primary)}
+.card-c{padding:14px 20px 20px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;border:1px solid transparent;padding:0 16px;height:38px;font-size:.9rem;font-weight:500;cursor:pointer;background:var(--primary);color:var(--primary-fg);white-space:nowrap;user-select:none;-webkit-tap-highlight-color:transparent}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.outline{background:transparent;border-color:var(--input);color:var(--foreground)}
+.btn.outline:hover{background:var(--accent)}
+.btn.ghost{background:transparent;color:var(--foreground)}
+.btn.ghost:hover{background:var(--accent)}
+.btn.secondary{background:var(--secondary);color:var(--foreground)}
+.btn.danger{background:oklch(0.5 0.2 27)}
+.btn.lg{height:44px;padding:0 22px}
+.btn.icon{width:36px;padding:0}
+.btn svg{width:16px;height:16px}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--border);padding:2px 10px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.badge.outline{background:transparent}
+.badge.secondary{background:var(--secondary);border-color:transparent}
+.badge.destructive{background:var(--primary);color:var(--primary-fg);border-color:transparent}
+.badge svg{width:14px;height:14px;color:var(--primary)}
+.badge.lg{font-size:.85rem;padding:6px 12px}
+label.lbl{display:block;font-size:.85rem;font-weight:500;margin-bottom:6px}
+.inp,select.inp,textarea.inp{width:100%;background:transparent;border:1px solid var(--input);border-radius:8px;padding:0 12px;height:44px;outline:none}
+textarea.inp{height:auto;padding:10px 12px;resize:vertical;min-height:80px}
+select.inp{appearance:auto;background:var(--card)}
+select.inp option{background:var(--card);color:var(--foreground)}
+.inp:focus{border-color:var(--primary);box-shadow:0 0 0 3px oklch(0.645 0.22 27 / 25%)}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:768px){.grid2{grid-template-columns:1fr 1fr}.span2{grid-column:span 2}}
+.grid2c{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:1024px){.grid2c{grid-template-columns:1fr 1fr}}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.ml-auto{margin-left:auto}
+.stack{display:flex;flex-direction:column;gap:12px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;border:1px solid var(--border);background:color-mix(in oklch,var(--muted) 30%,transparent);border-radius:10px;padding:12px}
+.toolbar svg{width:16px;height:16px;color:var(--primary)}
+.seg5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.seg-btn{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:8px;border:1px solid var(--input);background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.seg-btn.on{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.seg-btn b{font-size:1.1rem;line-height:1}
+.seg-btn span{font-size:.65rem;opacity:.85}
+@media (max-width:639px){.seg-btn span{display:none}}
+.fn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;border:1px solid var(--border);border-radius:8px;padding:12px;background:color-mix(in oklch,var(--muted) 30%,transparent)}
+@media (min-width:768px){.fn-grid{display:flex;flex-wrap:wrap;gap:12px}}
+.chip{min-height:48px;padding:8px 14px;border-radius:8px;border:1px solid var(--border);background:var(--background);cursor:pointer;font-size:.88rem;font-weight:500}
+@media (min-width:768px){.chip{min-height:0}}
+.chip.on{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tbl th{text-align:left;font-size:.72rem;text-transform:uppercase;color:var(--muted-fg);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border)}
+.tbl td{padding:10px;border-bottom:1px solid color-mix(in oklch,var(--border) 60%,transparent);vertical-align:middle}
+.scroll-x{overflow-x:auto}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (min-width:768px){.kpis{grid-template-columns:repeat(4,1fr);gap:16px}}
+.kpi{display:flex;align-items:center;gap:12px;padding:16px}
+.kpi-ic{width:42px;height:42px;border-radius:10px;background:oklch(0.645 0.22 27 / 15%);color:var(--primary);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.kpi-ic svg{width:20px;height:20px}
+.kpi-l{font-size:.68rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted-fg)}
+.kpi-v{font-size:1.5rem;font-weight:700}
+.top3{display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:768px){.top3{grid-template-columns:repeat(3,1fr)}}
+.peak{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:10px;padding:16px;background:color-mix(in oklch,var(--muted) 20%,transparent)}
+.peak:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--primary);opacity:var(--o,1)}
+.list-div>li{border-bottom:1px solid var(--border)}
+.list-div>li:last-child{border-bottom:0}
+ul.clean,ol.clean{list-style:none;margin:0;padding:0}
+.ged-item{border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.ged-item.done{border-color:oklch(0.645 0.22 27 / 40%)}
+.ged-vals{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ged-vals button{height:44px;border-radius:8px;border:1px solid var(--input);background:transparent;font-weight:600;font-size:1rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ged-vals button.on{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+.legend{border:1px solid var(--border);border-radius:8px;padding:12px;background:color-mix(in oklch,var(--muted) 20%,transparent);font-size:.78rem;color:var(--muted-fg)}
+.legend b{color:var(--foreground)}
+.heat{display:grid;grid-template-columns:140px repeat(7,minmax(0,1fr));min-width:720px}
+.heat>div{padding:8px;font-size:.8rem}
+.heat .hd{font-size:.72rem;font-weight:600;color:var(--muted-fg);text-align:center}
+.heat .sl{color:var(--muted-fg);border-top:1px solid color-mix(in oklch,var(--border) 70%,transparent);font-size:.72rem}
+.heat .cl{border-top:1px solid color-mix(in oklch,var(--border) 70%,transparent);border-left:1px solid color-mix(in oklch,var(--border) 70%,transparent);text-align:center;font-weight:600}
+.chart svg{display:block;width:100%;height:auto}
+.chart{min-height:40px}
+.chart text{fill:var(--muted-fg);font-size:11px}
+.pie-leg{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;font-size:.7rem;color:var(--muted-fg);margin-top:6px}
+.pie-leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.section h3{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--primary);margin:0 0 8px;font-weight:600}
+.section{font-size:.9rem;line-height:1.6}
+.section+.section{margin-top:22px}
+
+/* Popover & modal */
+.pop{position:absolute;right:12px;top:52px;width:300px;max-width:calc(100vw - 24px);background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 40px rgb(0 0 0 / 45%);z-index:60}
+.pop-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:.9rem}
+.pop-item:hover,.pop-item.on{background:var(--muted)}
+.pop-item svg{width:16px;height:16px;flex-shrink:0}
+.logo svg{width:26px;height:26px}
+.pop-item .x{margin-left:auto;background:none;border:0;color:var(--muted-fg);cursor:pointer;padding:4px;border-radius:4px}
+.pop-item .x:hover{color:var(--primary)}
+.modal-bg{position:fixed;inset:0;background:rgb(0 0 0 / 60%);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px}
+.modal h2{margin-bottom:12px}
+.toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;box-shadow:0 8px 30px rgb(0 0 0 / 40%);font-size:.9rem}
+.toast.err{border-color:var(--primary)}
+
+/* Lock screen */
+.lock{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16px}
+.lock .card{width:100%;max-width:440px;padding:28px;text-align:center}
+.lock .logo{width:56px;height:56px;border-radius:14px;margin:0 auto 14px;font-size:1.4rem}
+.lock form{display:flex;flex-direction:column;gap:12px;margin-top:18px;text-align:left}
+.warn{border:1px solid oklch(0.645 0.22 27 / 45%);background:oklch(0.645 0.22 27 / 10%);border-radius:8px;padding:10px 12px;font-size:.8rem;line-height:1.5;text-align:left}
+
+/* Print */
+.print-only{display:none}
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{background:#fff!important;color:#111!important}
+  .sidebar,header.top,.no-print,.toasts,.scrim,.pop{display:none!important}
+  .print-only{display:block!important}
+  .page{padding:0!important;max-width:100%!important}
+  .card,.peak,.legend{background:#fff!important;border-color:#ccc!important;color:#111!important}
+  .print-card{break-inside:avoid;page-break-inside:avoid}
+  .muted,.primary-text,.kpi-l,.section h3{color:#111!important}
+  .kpi-ic{background:#f2f2f2!important}
+  .chart text{fill:#333!important}
+  .badge{border-color:#999!important;background:#fff!important;color:#111!important}
+  .print-tbl{width:100%;border-collapse:collapse;font-size:11px}
+  .print-tbl th,.print-tbl td{border:1px solid #999;padding:4px 8px;text-align:left}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toasts" id="toasts"></div>
+<script>
+"use strict";
+/* =====================================================================
+   ABC Tracker — version 100 % locale et chiffrée
+   - Aucune connexion réseau (bloquée par la Content-Security-Policy).
+   - Pas de mot de passe à l'ouverture. Données chiffrées (AES-GCM 256 bits)
+     dans le stockage du navigateur avec une clé propre à l'appareil.
+   - Sauvegardes exportées chiffrées par un mot de passe choisi à l'export.
+   ===================================================================== */
+
+/* ---------- Constantes métier (reprises de l'appli Lovable) ---------- */
+const ABA_FUNCTIONS = ["Échappement","Attention","Tangible","Sensoriel"];
+const ABA_FUNCTION_LABELS = {
+  "Échappement":"Échappement / Évitement",
+  "Attention":"Recherche d'Attention",
+  "Tangible":"Accès au Tangible / Activité",
+  "Sensoriel":"Renforcement Automatique (Sensoriel)"
+};
+const ANTECEDENTS = ["Consigne/Demande donnée","Refus d'une demande du résident","Transition / Changement d'activité","Retrait d'un objet/activité","Manque d'attention / Isolement","Bruit / Stimulation sensorielle forte","Autre (préciser dans les notes)"];
+const COMPORTEMENTS = ["Hétéro-agression (physique)","Auto-agression","Destruction de matériel","Cris / Vocalisations fortes","Refus de coopérer / Opposition","Stéréotypies envahissantes","Autre"];
+const CONSEQUENCES = ["Attention obtenue (réconfort, réprimande)","Accès à un objet / activité","Évitement / Fuite de la tâche","Stimulation sensorielle / Distraction douleur"];
+const JOURS = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"];
+const INTENSITE_LABELS = {1:"Faible",2:"Léger",3:"Modéré",4:"Sévère",5:"Crise majeure"};
+const GRANULARITY_OPTIONS = [{v:30,l:"Par 30 min"},{v:60,l:"Par 1 heure"},{v:90,l:"Par 1h30"},{v:120,l:"Par 2 heures"}];
+const START_HOUR = 8, END_HOUR = 22;
+
+const GED_ITEMS = ["Gémit, se plaint, pleurniche faiblement","Pleure (modérément)","Crie / hurle (fortement)","Ne collabore pas, grincheux, irritable","Interagit moins avec les autres, se retire","Recherche le confort ou la proximité physique","Est difficile à distraire ou apaiser","Fronce les sourcils","Changement dans les yeux : écarquillés, plissés, air renfrogné","Auto agressivité","Hétéro agressivité","Fait la moue, lèvres fermées, frémissantes, maintenues proéminentes","Serre les dents, grince des dents, se mord la langue ou tire la langue","Ne bouge pas, est inactif ou silencieux","Saute partout, est agité, ne tient pas en place","Présente un faible tonus, est affalé","Présente une rigidité motrice, est raide, tendu, spastique","Montre par des gestes ou des touchers une partie du corps","Tente de se soustraire au toucher (tout ou partie du corps)","Frissonne","La couleur de peau change et devient pâle","La couleur de peau change et il existe une hyper sudation","Larmes visibles","A le souffle court ou hyper ventile","Retient sa respiration","Mange moins, moins intéressé par la nourriture – Mange plus","Dort plus ou dort moins"];
+const GED_VALUES = [0,1,2,3,"NA"];
+const GED_MAX_SCORE = 81;
+const GED_THRESHOLD = 6; // significatif si |écart| > 6
+const GED_TYPE_LABELS = {etat_de_base:"État de base", trouble_du_comportement:"Trouble du comportement"};
+
+/* ---------- Icônes (SVG inline, style Lucide) ---------- */
+const P = {
+  clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  activity:'<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+  heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+  settings:'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  user:'<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  panel:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
+  menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+  chevrons:'<path d="m7 15 5 5 5-5M7 9l5-5 5 5"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  plus:'<path d="M5 12h14M12 5v14"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  trash:'<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  eye:'<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
+  printer:'<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  calendar:'<path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+  trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+  file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/>',
+  alarm:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/>',
+  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  steth:'<path d="M11 2v2M5 2v2M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>',
+  notebook:'<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4M2 10h4M2 14h4M2 18h4"/><path d="M21.38 5.62a1 1 0 0 0-3-3l-5.01 5.01a2 2 0 0 0-.5.86l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .86-.5z"/>',
+  ok:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>'
+};
+const ic = (n, cls="") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]||""}</svg>`;
+
+/* ---------- Utilitaires ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = (n) => String(n).padStart(2,"0");
+const todayISO = () => { const d=new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const nowHHMM = () => { const d=new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtDate = (d) => String(d||"").split("-").reverse().join("/");
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join(""));
+const plural = (n, s="s") => n > 1 ? s : "";
+function toast(msg, err=false){
+  const el=document.createElement("div"); el.className="toast"+(err?" err":""); el.textContent=msg;
+  $("#toasts").appendChild(el); setTimeout(()=>el.remove(), 3200);
+}
+function jourFromDate(s){ const [y,m,d]=s.split("-").map(Number); const dt=new Date(y,(m||1)-1,d||1); return JOURS[(dt.getDay()+6)%7]; }
+function fmtHM(t){ return `${pad(Math.floor(t/60))}:${pad(t%60)}`; }
+function fmtCompact(t){ const h=Math.floor(t/60), m=t%60; return m===0?`${h}H`:`${h}H${m}`; }
+function computeBuckets(g){
+  const total=(END_HOUR-START_HOUR+1)*60, count=Math.ceil(total/g), out=[];
+  for(let i=0;i<count;i++){ const s=START_HOUR*60+i*g; out.push({start:s, chart:(g===60||g===30)?fmtCompact(s):`${fmtCompact(s)}-${fmtCompact(s+g)}`, full:`${fmtHM(s)} - ${fmtHM(s+g)}`}); }
+  return out;
+}
+function bucketIndexOf(heure, g){
+  const [h,m]=String(heure).split(":").map(Number); const off=(h||0)*60+(m||0)-START_HOUR*60;
+  if(off<0) return -1; const idx=Math.floor(off/g), max=Math.ceil(((END_HOUR-START_HOUR+1)*60)/g)-1;
+  return idx>max?-1:idx;
+}
+
+/* =====================================================================
+   COFFRE CHIFFRÉ (IndexedDB + WebCrypto)
+   ===================================================================== */
+const DB_NAME="abc-tracker-local", STORE="kv", PBKDF2_ITER=600000;
+const b64 = (buf) => { const b=new Uint8Array(buf); let s=""; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(s); };
+const unb64 = (s) => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
+function idb(){
+  return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(STORE); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+}
+async function kvGet(k){ const db=await idb(); return new Promise((res,rej)=>{ const t=db.transaction(STORE).objectStore(STORE).get(k); t.onsuccess=()=>res(t.result); t.onerror=()=>rej(t.error); }); }
+async function kvSet(k,v){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).put(v,k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function kvDel(k){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).delete(k); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function deriveKey(pass, salt, iter){
+  const base=await crypto.subtle.importKey("raw", new TextEncoder().encode(pass.normalize("NFC")), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2", hash:"SHA-256", salt, iterations:iter}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+}
+async function encryptObj(key, obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, new TextEncoder().encode(JSON.stringify(obj)));
+  return {iv:b64(iv), ct:b64(ct)};
+}
+async function decryptObj(key, iv, ct){
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(iv)}, key, unb64(ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+const emptyData = () => ({version:1, residents:[], entries:[], notes:{}, pain:[], prefs:{selected:"", rempliPar:"", lockMinutes:5}});
+
+/* ---------- État de l'application ---------- */
+const S = {
+  key:null, salt:null, data:null,
+  sidebarCollapsed:false, sidebarOpen:false, popOpen:false,
+  gran:60, gedDraft:null, abcFns:[], intensite:2,
+  lastActivity:Date.now(), saveTimer:null, saving:Promise.resolve()
+};
+function scheduleSave(){
+  clearTimeout(S.saveTimer);
+  S.saveTimer=setTimeout(()=>{ S.saving = saveNow(); }, 250);
+}
+async function saveNow(){
+  if(!S.key||!S.data) return;
+  const {iv,ct}=await encryptObj(S.key, S.data);
+  await kvSet("vault", {v:2, iv, ct, updated:Date.now()});
+}
+async function flushSave(){ clearTimeout(S.saveTimer); await S.saving; await saveNow(); }
+const normalize = (data) => { const d=Object.assign(emptyData(), data); d.prefs=Object.assign(emptyData().prefs, data.prefs||{}); return d; };
+
+/* =====================================================================
+   OUVERTURE — sans mot de passe.
+   Les données restent chiffrées sur le disque avec une clé propre à cet
+   appareil (générée à la première ouverture, non exportable).
+   ===================================================================== */
+async function getDeviceKey(){
+  let k=await kvGet("devkey");
+  if(!k){ k=await crypto.subtle.generateKey({name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]); await kvSet("devkey", k); }
+  return k;
+}
+async function openVault(){
+  const vault=await kvGet("vault").catch(()=>null);
+  if(vault && vault.salt) return renderLegacyUnlock(vault);
+  try{
+    S.key=await getDeviceKey();
+    if(!vault){ S.data=emptyData(); seedDemo(S.data); await saveNow(); }
+    else S.data=normalize(await decryptObj(S.key, vault.iv, vault.ct));
+  }catch(err){ return renderUnreadable(); }
+  requestPersist(); startApp();
+}
+function screen(html){ $("#root").innerHTML=`<div class="lock"><div class="card"><div class="logo">${ic("activity")}</div><h1>ABC Tracker</h1>${html}<p class="muted xs" id="lock-msg" style="margin-top:12px;min-height:1em"></p></div></div>`; }
+/* Données créées avec l'ancienne version protégée par mot de passe : migration unique. */
+function renderLegacyUnlock(vault){
+  screen(`<form autocomplete="off" id="f-legacy">
+    <div class="warn">Ces données ont été créées avec l'ancienne version protégée par mot de passe. Saisissez-le <b>une dernière fois</b> : l'appli n'en demandera plus ensuite.</div>
+    <div><label class="lbl" for="p1">Ancien mot de passe</label><input class="inp" id="p1" type="password" autocomplete="off" required></div>
+    <button class="btn lg" type="submit">Continuer</button>
+    <button class="btn ghost small" type="button" data-erase="1">Mot de passe oublié : effacer ces données…</button></form>`);
+  $("#f-legacy").onsubmit=async(e)=>{ e.preventDefault(); $("#lock-msg").textContent="Ouverture…";
+    try{ const k=await deriveKey($("#p1").value, unb64(vault.salt), vault.iter||PBKDF2_ITER); const data=await decryptObj(k, vault.iv, vault.ct);
+      S.key=await getDeviceKey(); S.data=normalize(data); await saveNow(); requestPersist(); startApp(); toast("Mot de passe supprimé : l'appli s'ouvre désormais directement.");
+    }catch(err){ $("#lock-msg").textContent="Mot de passe incorrect."; } };
+  bindErase();
+}
+function renderUnreadable(){
+  screen(`<div class="warn" style="margin-top:16px">Les données enregistrées sur cet appareil sont illisibles (stockage du navigateur partiellement effacé). Vous pouvez les effacer puis restaurer une sauvegarde depuis Paramètres.</div>
+    <button class="btn lg" style="margin-top:12px;width:100%" data-erase="1">Effacer et repartir de zéro</button>`);
+  bindErase();
+}
+function bindErase(){ const b=document.querySelector("[data-erase]"); if(b) b.onclick=eraseAll; }
+async function eraseAll(){
+  if(!confirm("Effacer DÉFINITIVEMENT toutes les données de cet appareil ? Pensez à exporter une sauvegarde avant.")) return;
+  if(prompt("Pour confirmer, tapez : EFFACER")!=="EFFACER") return toast("Effacement annulé.");
+  await kvDel("vault"); await kvDel("devkey"); S.key=null; S.data=null; closeModal(); await openVault(); toast("Toutes les données ont été effacées.");
+}
+function requestPersist(){ try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){} }
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden" && S.key) flushSave().catch(()=>{}); });
+window.addEventListener("pagehide",()=>{ if(S.key) saveNow(); });
+
+/* =====================================================================
+   DONNÉES — opérations
+   ===================================================================== */
+const D = () => S.data;
+const selected = () => D().prefs.selected || "";
+function setSelected(n){ D().prefs.selected=n; scheduleSave(); }
+function residentEntries(){ const r=selected(); return D().entries.filter(e=>e.resident===r).sort((a,b)=> (b.date+b.heure).localeCompare(a.date+a.heure) || b.createdAt-a.createdAt); }
+function addResident(name){
+  const n=name.trim(); if(!n) return;
+  if(!D().residents.includes(n)) D().residents.push(n);
+  setSelected(n); scheduleSave();
+}
+function removeResident(name){
+  const d=D();
+  d.residents=d.residents.filter(r=>r!==name);
+  d.entries=d.entries.filter(e=>e.resident!==name);
+  d.pain=d.pain.filter(p=>p.resident!==name);
+  delete d.notes[name];
+  if(d.prefs.selected===name) d.prefs.selected=d.residents[0]||"";
+  scheduleSave();
+}
+
+/* GED-DI */
+const computeScore = (items) => items.reduce((s,v)=>s+(typeof v==="number"?v:0),0);
+function findReferenceBase(t, all){
+  const c=all.filter(a=>a.type==="etat_de_base" && a.resident===t.resident && a.id!==t.id && a.date<=t.date);
+  if(!c.length) return null;
+  c.sort((a,b)=> a.date===b.date ? (a.created_at<b.created_at?1:-1) : (a.date<b.date?1:-1));
+  return c[0];
+}
+function evaluate(a, all){
+  if(a.type==="etat_de_base") return {kind:"base"};
+  const base=findReferenceBase(a, all); if(!base) return {kind:"no_base"};
+  const ecart=a.score-base.score;
+  return {kind:"ecart", base, ecart, douleur:Math.abs(ecart) > GED_THRESHOLD};
+}
+const formatEcart = (n) => n>0?`+${n}`: n<0?`−${Math.abs(n)}`:"0";
+function resultBadge(r){
+  if(r.kind==="base") return `<span class="badge outline">Référence</span>`;
+  if(r.kind==="no_base") return `<span class="badge secondary">Pas de grille de base de référence</span>`;
+  return r.douleur ? `<span class="badge destructive">Témoigne de douleur</span>` : `<span class="badge secondary">Non significatif</span>`;
+}
+
+/* =====================================================================
+   GRAPHIQUES SVG (sans bibliothèque)
+   ===================================================================== */
+const C_RED="oklch(0.645 0.22 27)", C_GRID="oklch(1 0 0 / 8%)";
+const PIE_COLORS=["oklch(0.645 0.22 27)","oklch(0.7 0.18 60)","oklch(0.72 0.16 155)","oklch(0.65 0.18 220)","oklch(0.6 0.2 300)","oklch(0.75 0.14 90)","oklch(0.55 0.15 340)"];
+function niceMax(m){ if(m<=5) return Math.max(1,m); const p=Math.pow(10,Math.floor(Math.log10(m))); for(const k of [1,2,2.5,5,10]) if(k*p>=m) return k*p; return m; }
+function ticks(max){ const n=Math.min(max,5); const step=max/n; return Array.from({length:n+1},(_,i)=>Math.round(i*step*100)/100); }
+function hbar(data, {labelW=170, color=C_RED, rowH=34, fullLabels=null, W=620}={}){
+  labelW=Math.min(labelW, Math.round(W*0.42));
+  const plotW=W-labelW-36, H=Math.max(1,data.length)*rowH+28;
+  const max=niceMax(Math.max(0,...data.map(d=>d.value)));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for(const t of ticks(max)){ const x=labelW+(t/max)*plotW; s+=`<line x1="${x}" x2="${x}" y1="4" y2="${H-22}" stroke="${C_GRID}" stroke-dasharray="3 3"/><text x="${x}" y="${H-6}" text-anchor="middle">${Number.isInteger(t)?t:""}</text>`; }
+  data.forEach((d,i)=>{
+    const y=8+i*rowH, w=max?(d.value/max)*plotW:0, mc=Math.max(6,Math.floor((labelW-12)/6.3)), lab=d.label.length>mc?d.label.slice(0,mc-1)+"…":d.label;
+    s+=`<text x="${labelW-8}" y="${y+rowH/2}" text-anchor="end" dominant-baseline="middle">${esc(lab)}</text>`;
+    if(w>0) s+=`<path d="M${labelW} ${y+5}h${Math.max(0,w-6)}a6 6 0 0 1 6 6v${rowH-22}a6 6 0 0 1-6 6h-${Math.max(0,w-6)}z" fill="${color}"><title>${esc((fullLabels&&fullLabels[i])||d.label)} : ${d.value}</title></path>`;
+    s+=`<text x="${labelW+w+6}" y="${y+rowH/2}" dominant-baseline="middle" style="fill:var(--foreground)">${d.value||""}</text>`;
+  });
+  return s+"</svg>";
+}
+function lineChart(data, {fulls=null, rotate=true, W=620}={}){
+  const H=280, L=rotate?64:34, R=14, T=10, B=rotate?66:30, pw=W-L-R, ph=H-T-B;
+  const max=niceMax(Math.max(0,...data.map(d=>d.y)));
+  const n=data.length, xAt=(i)=> L+(n<=1?pw/2:(i/(n-1))*pw), yAt=(v)=>T+ph-(max?v/max:0)*ph;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for(const t of ticks(max)){ const y=yAt(t); s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="${C_GRID}" stroke-dasharray="3 3"/>`; if(Number.isInteger(t)) s+=`<text x="${L-6}" y="${y}" text-anchor="end" dominant-baseline="middle">${t}</text>`; }
+  const every=Math.max(1,Math.ceil(n/Math.max(4,Math.floor(W/46))));
+  data.forEach((d,i)=>{ if(i%every && !(i===n-1 && (n-1)%every>=every/2)) return; const x=xAt(i); s+= rotate ? `<text transform="translate(${x},${T+ph+12}) rotate(-35)" text-anchor="end">${esc(d.x)}</text>` : `<text x="${x}" y="${T+ph+16}" text-anchor="middle">${esc(d.x)}</text>`; });
+  if(n){
+    let path=""; data.forEach((d,i)=>{ path+=(i?"L":"M")+xAt(i).toFixed(1)+" "+yAt(d.y).toFixed(1); });
+    s+=`<path d="${path}" fill="none" stroke="${C_RED}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    data.forEach((d,i)=>{ s+=`<circle cx="${xAt(i)}" cy="${yAt(d.y)}" r="3.5" fill="${C_RED}"><title>${esc(fulls?fulls[i]:d.x)} : ${d.y} occurrence${plural(d.y)}</title></circle>`; });
+  }
+  return s+"</svg>";
+}
+function pieChart(data, offset=0){
+  const total=data.reduce((s,d)=>s+d.value,0); if(!total) return `<p class="muted small" style="text-align:center;padding:40px 0">Pas de données.</p>`;
+  const W=320,H=230,cx=160,cy=115,r=92; let a0=-Math.PI/2, s=`<svg viewBox="0 0 ${W} ${H}" style="max-width:360px;margin:0 auto">`, lab="";
+  data.forEach((d,i)=>{
+    const frac=d.value/total, a1=a0+frac*2*Math.PI, col=PIE_COLORS[(i+offset)%PIE_COLORS.length];
+    if(frac>=0.9999){ s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}"><title>${esc(d.label)} : ${d.value}</title></circle>`; }
+    else { const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0), x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+      s+=`<path d="M${cx} ${cy}L${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${frac>.5?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}Z" fill="${col}" stroke="var(--card)" stroke-width="1"><title>${esc(d.label)} : ${d.value}</title></path>`; }
+    const am=(a0+a1)/2, lx=cx+(r+14)*Math.cos(am), ly=cy+(r+14)*Math.sin(am);
+    if(frac>=0.03) lab+=`<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${Math.cos(am)>=0?"start":"end"}" dominant-baseline="middle" style="fill:${col}">${Math.round(frac*100)}%</text>`;
+    a0=a1;
+  });
+  s+=lab+"</svg>";
+  s+=`<div class="pie-leg">${data.map((d,i)=>`<span><i style="background:${PIE_COLORS[(i+offset)%PIE_COLORS.length]}"></i>${esc(d.label)}</span>`).join("")}</div>`;
+  return s;
+}
+/* Les graphiques sont dessinés à la largeur réelle de leur emplacement (texte à taille constante). */
+let CHARTS=[];
+function chartSlot(fn){ CHARTS.push(fn); return `<div class="chart" data-chart="${CHARTS.length-1}"></div>`; }
+function drawCharts(){
+  document.querySelectorAll("[data-chart]").forEach(el=>{ const fn=CHARTS[+el.dataset.chart]; if(!fn) return; const W=Math.max(260, Math.floor(el.clientWidth)); if(el._w===W) return; el._w=W; el.innerHTML=fn(W); });
+}
+let _rz; window.addEventListener("resize",()=>{ clearTimeout(_rz); _rz=setTimeout(drawCharts,150); });
+window.addEventListener("beforeprint", ()=>{ document.querySelectorAll("[data-chart]").forEach(el=>{ el._w=0; }); drawCharts(); });
+function heatColor(v,max){ if(v===0) return "oklch(0.24 0.02 260)"; const t=max>0?v/max:0; return `oklch(${(0.42-0.05*t).toFixed(3)} ${(0.05+0.17*t).toFixed(3)} 27)`; }
+
+/* =====================================================================
+   SQUELETTE (barre latérale, en-tête, sélecteur de profil)
+   ===================================================================== */
+const ROUTES = [
+  {id:"saisie", title:"Saisie ABC", icon:"clipboard"},
+  {id:"dashboard", title:"Tableau de bord", icon:"grid"},
+  {id:"rapport", title:"Rapport clinique", icon:"activity"},
+  {id:"douleur", title:"Douleur (GED-DI)", icon:"heart"},
+  {id:"parametres", title:"Paramètres & sauvegarde", icon:"settings"}
+];
+const route = () => { const r=(location.hash||"").replace(/^#\/?/,""); return ROUTES.some(x=>x.id===r)?r:"saisie"; };
+
+function startApp(){
+  S.lastActivity=Date.now();
+  $("#root").innerHTML = `
+  <div class="app">
+    <div class="scrim" id="scrim"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head"><div class="logo">A</div><div class="sb-text" style="display:flex;flex-direction:column;line-height:1.2"><span class="bold small">ABC Tracker</span><span class="muted xs">Foyer de Vie · local</span></div></div>
+      <div class="sb-label sb-text">Navigation</div>
+      <nav class="sb-nav" id="nav"></nav>
+    </aside>
+    <div class="main-col">
+      <header class="top">
+        <button class="btn ghost icon" data-act="toggle-sidebar" aria-label="Menu">${ic("panel")}</button>
+        <span class="muted small bold hide-mobile">Suivi comportemental ABA</span>
+        <span class="badge secondary hide-mobile" title="Données stockées uniquement sur cet appareil, aucune connexion réseau">${ic("shield")} Local · hors ligne</span>
+        <div class="ml-auto" id="resident-sel"></div>
+      </header>
+      <main id="main"></main>
+    </div>
+  </div>`;
+  renderShell(); renderMain();
+}
+function renderShell(){
+  const r=route();
+  $("#nav").innerHTML = ROUTES.map(x=>`<a class="sb-link ${x.id===r?"active":""}" href="#/${x.id}" title="${esc(x.title)}">${ic(x.icon)}<span class="sb-text">${esc(x.title)}</span></a>`).join("");
+  const sb=$("#sidebar"); sb.classList.toggle("collapsed", S.sidebarCollapsed); sb.classList.toggle("open", S.sidebarOpen);
+  $("#scrim").classList.toggle("show", S.sidebarOpen);
+  renderResidentSelector();
+}
+function renderResidentSelector(){
+  const sel=selected(), res=D().residents;
+  $("#resident-sel").innerHTML = `
+    <button class="btn outline" data-act="pop" style="min-width:180px;justify-content:space-between;height:36px">
+      <span class="row" style="gap:8px;flex-wrap:nowrap;min-width:0">${ic("user","primary-text")}<span class="bold" style="overflow:hidden;text-overflow:ellipsis;max-width:150px">${esc(sel||"Choisir un profil")}</span></span>${ic("chevrons")}
+    </button>
+    ${S.popOpen?`<div class="pop" id="pop">
+      <div style="padding:8px;border-bottom:1px solid var(--border)">
+        <div class="xs muted" style="text-transform:uppercase;letter-spacing:.04em;padding:4px 8px">Personnes accompagnées</div>
+        ${res.length===0?`<div class="xs muted" style="padding:10px 8px">Aucun profil. Ajoutez-en un ci-dessous.</div>`:
+        `<div style="max-height:240px;overflow:auto">${res.map((r,i)=>`<div class="pop-item ${r===sel?"on":""}" data-act="pick" data-i="${i}">${r===sel?ic("check","primary-text"):`<span style="width:16px"></span>`}<span style="overflow:hidden;text-overflow:ellipsis">${esc(r)}</span><button class="x" data-act="rm-res" data-i="${i}" aria-label="Supprimer">${ic("x")}</button></div>`).join("")}</div>`}
+      </div>
+      <form autocomplete="off" id="f-res" style="padding:8px;display:flex;flex-direction:column;gap:8px">
+        <div class="row" style="flex-wrap:nowrap;gap:8px"><input class="inp" id="new-res" placeholder="Nom ou code de la personne" style="height:38px" autocomplete="off"><button class="btn icon" type="submit" aria-label="Ajouter">${ic("plus")}</button></div>
+        <p class="xs muted" style="line-height:1.4">🔒 Stocké chiffré sur cet appareil uniquement.</p>
+      </form>
+    </div>`:""}`;
+  const f=$("#f-res"); if(f){ f.onsubmit=(e)=>{ e.preventDefault(); const v=$("#new-res").value; if(!v.trim()) return; addResident(v); S.popOpen=false; renderShell(); renderMain(); }; setTimeout(()=>$("#new-res")&&$("#new-res").focus(),30); }
+}
+
+/* Délégation d'événements globale */
+document.addEventListener("click",(e)=>{
+  if(!S.data) return;
+  const t=e.target.closest("[data-act]");
+  if(S.popOpen && !e.target.closest("#pop") && !(t&&t.dataset.act==="pop")){ S.popOpen=false; renderResidentSelector(); }
+  if(!t) return;
+  const a=t.dataset.act;
+  if(a==="toggle-sidebar"){ if(window.innerWidth<768) S.sidebarOpen=!S.sidebarOpen; else S.sidebarCollapsed=!S.sidebarCollapsed; renderShell(); }
+  else if(a==="pop"){ S.popOpen=!S.popOpen; renderResidentSelector(); }
+  else if(a==="pick"){ if(e.target.closest(".x")) return; setSelected(D().residents[+t.dataset.i]); S.popOpen=false; S.gedDraft=null; renderShell(); renderMain(); }
+  else if(a==="rm-res"){ e.stopPropagation(); const n=D().residents[+t.dataset.i];
+    const nE=D().entries.filter(x=>x.resident===n).length, nP=D().pain.filter(x=>x.resident===n).length;
+    if(confirm(`Supprimer « ${n} » ainsi que ses ${nE} observation(s) ABC, ses ${nP} grille(s) GED-DI et ses notes ? Action définitive.`)){ removeResident(n); S.popOpen=false; renderShell(); renderMain(); toast("Profil supprimé."); } }
+  else if(ACTIONS[a]) ACTIONS[a](t, e);
+});
+$("#root").addEventListener("click",(e)=>{ if(e.target.id==="scrim"){ S.sidebarOpen=false; renderShell(); } });
+window.addEventListener("hashchange",()=>{ if(!S.data) return; S.sidebarOpen=false; S.popOpen=false; renderShell(); renderMain(); window.scrollTo(0,0); });
+const ACTIONS = {};
+
+function noResident(msg){
+  return `<div class="page narrow" style="max-width:640px"><div class="card" style="padding:32px;text-align:center"><div style="width:40px;height:40px;margin:0 auto 10px;color:var(--primary)">${ic("user")}</div><h2>Aucun profil sélectionné</h2><p class="muted small" style="margin-top:6px">${msg}</p><button class="btn" style="margin-top:16px" data-act="pop">${ic("plus")} Ajouter ou choisir un profil</button></div></div>`;
+}
+const residentBadge = () => `<span class="badge outline lg">${ic("user")}<span class="muted" style="font-weight:500">Profil :</span> ${esc(selected())}</span>`;
+const footNote = `<p class="xs muted" style="text-align:center">Données chiffrées et stockées uniquement sur cet appareil. Aucune transmission réseau.</p>`;
+
+function renderMain(){
+  const r=route(), m=$("#main"); CHARTS=[];
+  if(r==="saisie") m.innerHTML=pageSaisie();
+  else if(r==="dashboard") m.innerHTML=pageDashboard();
+  else if(r==="rapport") m.innerHTML=pageRapport();
+  else if(r==="douleur") m.innerHTML=pageDouleur();
+  else m.innerHTML=pageParametres();
+  if(PAGE_INIT[r]) PAGE_INIT[r]();
+  drawCharts();
+}
+const PAGE_INIT = {};
+
+/* =====================================================================
+   PAGE : SAISIE ABC
+   ===================================================================== */
+function pageSaisie(){
+  if(!selected()) return noResident("Ajoutez et sélectionnez un profil via le bouton en haut à droite pour commencer les saisies.");
+  const recent=residentEntries().slice(0,20);
+  const opts=(arr)=>arr.map(x=>`<option>${esc(x)}</option>`).join("");
+  return `<div class="page">
+    <div class="row between" style="align-items:flex-start">
+      <div><h1>Saisie ABC</h1><p class="muted small">Enregistrer un comportement défi (Antécédent · Comportement · Conséquence).</p></div>
+      ${residentBadge()}
+    </div>
+    <div class="card"><div class="card-h"><div class="card-t">Nouvelle observation</div></div><div class="card-c">
+      <form autocomplete="off" id="f-abc" class="grid2">
+        <div><label class="lbl">Date</label><input class="inp" autocomplete="off" spellcheck="false" type="date" name="date" value="${todayISO()}" required></div>
+        <div><label class="lbl">Heure de l'événement</label><input class="inp" autocomplete="off" spellcheck="false" type="time" name="heure" value="${nowHHMM()}" required></div>
+        <div><label class="lbl">Antécédent (déclencheur)</label><select class="inp" name="antecedent">${opts(ANTECEDENTS)}</select></div>
+        <div><label class="lbl">Comportement observé</label><select class="inp" name="comportement">${opts(COMPORTEMENTS)}</select></div>
+        <div><label class="lbl">Conséquence (immédiate)</label><select class="inp" name="consequence">${opts(CONSEQUENCES)}</select></div>
+        <div><label class="lbl">Lieu / Activité (optionnel)</label><input class="inp" name="lieu" placeholder="ex : Salon, repas" autocomplete="off"></div>
+        <div class="span2"><label class="lbl">Intensité — échelle 1 (faible) à 5 (crise majeure)</label>
+          <div class="seg5" id="intens">${[1,2,3,4,5].map(n=>`<button type="button" class="seg-btn ${S.intensite===n?"on":""}" data-act="intens" data-n="${n}"><b>${n}</b><span>${INTENSITE_LABELS[n]}</span></button>`).join("")}</div></div>
+        <div class="span2"><label class="lbl">Fonctions ABA hypothétiques (choix multiples)</label>
+          <div class="fn-grid" id="fns">${ABA_FUNCTIONS.map(f=>`<button type="button" class="chip ${S.abcFns.includes(f)?"on":""}" data-act="fn" data-f="${esc(f)}" aria-pressed="${S.abcFns.includes(f)}">${esc(f)}</button>`).join("")}</div></div>
+        <div class="span2"><label class="lbl">Notes / Détails (optionnel)</label><textarea class="inp" autocomplete="off" spellcheck="false" name="commentaire" rows="3" placeholder="Détails du comportement (Ex : a jeté un objet)…"></textarea></div>
+        <div class="span2 row" style="justify-content:flex-end">
+          <a class="btn outline lg" href="#/dashboard">Voir le tableau de bord</a>
+          <button class="btn lg" type="submit">Enregistrer l'observation</button>
+        </div>
+      </form>
+    </div></div>
+    <div class="card"><div class="card-h"><div class="card-t">Saisies récentes — ${esc(selected())}</div></div><div class="card-c scroll-x">
+      ${recent.length===0?`<p class="muted small" style="text-align:center;padding:30px 0">Aucune saisie pour ce profil.</p>`:
+      `<table class="tbl"><thead><tr><th>Date</th><th>Heure</th><th>Comportement</th><th>Int.</th><th>Conséquence</th><th></th></tr></thead><tbody>
+      ${recent.map(e=>`<tr><td style="white-space:nowrap">${fmtDate(e.date)}</td><td>${esc(e.heure)}</td><td>${esc(e.comportement)}</td><td><span class="badge ${e.intensite>=4?"destructive":"secondary"}">${e.intensite}</span></td><td class="xs muted" style="max-width:240px">${esc(e.consequence)}</td><td><button class="btn ghost icon" data-act="del-entry" data-id="${esc(e.id)}" aria-label="Supprimer">${ic("trash")}</button></td></tr>`).join("")}
+      </tbody></table>`}
+    </div></div>
+    ${footNote}
+  </div>`;
+}
+ACTIONS["intens"]=(t)=>{ S.intensite=+t.dataset.n; document.querySelectorAll("#intens .seg-btn").forEach(b=>b.classList.toggle("on", +b.dataset.n===S.intensite)); };
+ACTIONS["fn"]=(t)=>{ const f=t.dataset.f; S.abcFns=S.abcFns.includes(f)?S.abcFns.filter(x=>x!==f):[...S.abcFns,f]; t.classList.toggle("on"); t.setAttribute("aria-pressed", S.abcFns.includes(f)); };
+ACTIONS["del-entry"]=(t)=>{ if(!confirm("Supprimer cette observation ?")) return; D().entries=D().entries.filter(e=>e.id!==t.dataset.id); scheduleSave(); renderMain(); toast("Observation supprimée."); };
+PAGE_INIT.saisie=()=>{
+  const f=$("#f-abc"); if(!f) return;
+  f.onsubmit=(e)=>{
+    e.preventDefault(); const fd=new FormData(f);
+    D().entries.push({id:uid(), date:fd.get("date"), heure:fd.get("heure"), resident:selected(), comportement:fd.get("comportement"), intensite:S.intensite, lieu:String(fd.get("lieu")||"").trim(), antecedent:fd.get("antecedent"), consequence:fd.get("consequence"), fonctions:[...S.abcFns], commentaire:String(fd.get("commentaire")||"").trim(), createdAt:Date.now()});
+    scheduleSave(); S.abcFns=[]; renderMain(); toast("Saisie enregistrée");
+  };
+};
+
+/* =====================================================================
+   PAGE : TABLEAU DE BORD
+   ===================================================================== */
+function granToolbar(){
+  return `<div class="toolbar no-print">
+    <span class="row" style="gap:8px">${ic("clock")}<span class="muted small">Regroupement horaire :</span></span>
+    <select class="inp" id="gran" style="width:170px;height:38px">${GRANULARITY_OPTIONS.map(o=>`<option value="${o.v}" ${o.v===S.gran?"selected":""}>${o.l}</option>`).join("")}</select>
+    <button class="btn ml-auto" onclick="window.print()">${ic("printer")} Exporter le rapport en PDF</button>
+  </div>`;
+}
+function bindGran(){ const g=$("#gran"); if(g) g.onchange=()=>{ S.gran=+g.value; renderMain(); }; }
+function countBy(list, key){ const m={}; for(const e of list){ const k=e[key]; if(k) m[k]=(m[k]||0)+1; } return Object.entries(m).map(([label,value])=>({label,value})); }
+function pageDashboard(){
+  if(!selected()) return noResident("Choisissez un profil dans l'en-tête pour afficher son analyse.");
+  const entries=residentEntries(), g=S.gran, buckets=computeBuckets(g);
+  let body;
+  if(!entries.length) body=`<div class="card" style="padding:32px;text-align:center" ><p class="muted small">Aucune observation enregistrée pour ce profil.</p></div>`;
+  else{
+    const grid={}; buckets.forEach(b=>{ grid[b.chart]=Object.fromEntries(JOURS.map(j=>[j,0])); });
+    for(const e of entries){ const i=bucketIndexOf(e.heure,g); if(i<0||i>=buckets.length) continue; grid[buckets[i].chart][jourFromDate(e.date)]++; }
+    let max=0; buckets.forEach(b=>JOURS.forEach(j=>{ max=Math.max(max,grid[b.chart][j]); }));
+    const comp=countBy(entries,"comportement").sort((a,b)=>b.value-a.value);
+    const ante=countBy(entries,"antecedent"), cons=countBy(entries,"consequence");
+    const trend=Object.entries(entries.reduce((m,e)=>(m[e.date]=(m[e.date]||0)+1,m),{})).sort((a,b)=>a[0].localeCompare(b[0])).map(([x,y])=>({x:fmtDate(x),y}));
+    body=`
+    <div class="card print-card"><div class="card-h"><div class="card-t">Fréquence des comportements</div></div><div class="card-c">${chartSlot(W=>hbar(comp,{W}))}</div></div>
+    <div class="grid2c">
+      <div class="card print-card"><div class="card-h"><div class="card-t">Répartition des antécédents (déclencheurs)</div></div><div class="card-c chart">${pieChart(ante,0)}</div></div>
+      <div class="card print-card"><div class="card-h"><div class="card-t">Répartition des conséquences (fonction probable)</div></div><div class="card-c chart">${pieChart(cons,2)}</div></div>
+    </div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">Évolution du nombre de comportements par jour</div></div><div class="card-c">${chartSlot(W=>lineChart(trend,{W}))}</div></div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">Heatmap horaire · max cellule : ${max}</div>
+      <div class="row xs muted" style="gap:8px"><span>0</span><div style="height:8px;width:128px;border-radius:99px;background:linear-gradient(to right,oklch(0.24 0.02 260),${C_RED})"></div><span>+</span></div></div>
+      <div class="card-c scroll-x"><div class="heat"><div class="hd" style="text-align:left">Créneau</div>${JOURS.map(j=>`<div class="hd">${j}</div>`).join("")}
+      ${buckets.map(b=>`<div class="sl num">${b.full}</div>${JOURS.map(j=>{ const v=grid[b.chart][j]; return `<div class="cl num" style="background:${heatColor(v,max)};color:${v>0?"oklch(0.99 0 0)":"oklch(0.6 0.02 260)"}" title="${j} · ${b.full} — ${v} occurrence${plural(v)}">${v||""}</div>`; }).join("")}`).join("")}
+      </div></div></div>
+    <div class="card no-print"><div class="card-h"><div class="card-t">Dernières saisies</div></div><div class="card-c"><ul class="clean list-div">
+      ${entries.slice(0,8).map(e=>`<li style="padding:8px 0"><div class="bold small">${esc(e.comportement)}</div><div class="xs muted">${fmtDate(e.date)} · ${esc(e.heure)} · ${esc(e.lieu||"—")}</div></li>`).join("")}
+    </ul></div></div>`;
+  }
+  return `<div class="page print-area">
+    <div class="row between" style="align-items:flex-start"><div><h1>Tableau de bord</h1><p class="muted small">Analyse fonctionnelle des observations ABC pour le profil sélectionné.</p></div>${residentBadge()}</div>
+    ${granToolbar()}${body}${footNote}</div>`;
+}
+PAGE_INIT.dashboard=bindGran;
+
+/* =====================================================================
+   PAGE : RAPPORT CLINIQUE
+   ===================================================================== */
+function rapportStats(entries, g){
+  const total=entries.length, active=new Set(entries.map(e=>e.date)).size;
+  const avgI=total?entries.reduce((s,e)=>s+e.intensite,0)/total:0, avgD=active?total/active:0;
+  const per=computeBuckets(g).map(b=>({...b,count:0,high:0}));
+  for(const e of entries){ const i=bucketIndexOf(e.heure,g); if(i<0||i>=per.length) continue; per[i].count++; if(e.intensite>=4) per[i].high++; }
+  const top3=[...per].filter(b=>b.count>0).sort((a,b)=>b.count-a.count).slice(0,3).map(b=>({...b,pct:total?b.count/total*100:0}));
+  const highTotal=per.reduce((s,b)=>s+b.high,0);
+  const th=[...per].filter(b=>b.high>0).sort((a,b)=>b.high-a.high)[0];
+  const topHigh=th?{...th,pct:highTotal?th.high/highTotal*100:0}:null;
+  const perFn=Object.fromEntries(ABA_FUNCTIONS.map(f=>[f,0])); let fnTotal=0;
+  for(const e of entries) for(const f of (e.fonctions||[])) if(f in perFn){ perFn[f]++; fnTotal++; }
+  const fnChart=ABA_FUNCTIONS.map(f=>({fonction:f,count:perFn[f],pct:fnTotal?perFn[f]/fnTotal*100:0}));
+  const dominant=[...fnChart].sort((a,b)=>b.count-a.count)[0];
+  return {total,active,avgI,avgD,per,top3,highTotal,topHigh,fnChart,dominant,fnTotal};
+}
+function pageRapport(){
+  if(!selected()) return noResident("Choisissez un profil dans l'en-tête pour générer son rapport clinique.");
+  const entries=residentEntries(), st=rapportStats(entries,S.gran), res=selected();
+  const kpis=[["Occurrences totales",st.total,"activity"],["Jours actifs",st.active,"calendar"],["Moyenne / jour",st.avgD.toFixed(1),"trend"],["Intensité moyenne",st.avgI.toFixed(1),"file"]];
+  const top3Pct=st.top3.reduce((s,t)=>s+t.pct,0), sig=top3Pct>=70, rangs=["1er pic","2ème pic","3ème pic"];
+  const notes=D().notes[res]||"";
+  return `<div class="page print-area">
+    <div class="row between" style="align-items:flex-start"><div><h1>Rapport clinique</h1><p class="muted small">Évaluation fonctionnelle standardisée et analyse quantitative.</p></div>${residentBadge()}</div>
+    ${granToolbar()}
+    <div class="kpis">${kpis.map(([l,v,i])=>`<div class="card kpi print-card"><div class="kpi-ic">${ic(i)}</div><div style="min-width:0"><div class="kpi-l">${l}</div><div class="kpi-v num">${v}</div></div></div>`).join("")}</div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">${ic("alarm")} Pics de vulnérabilité temporelle (Top 3)</div></div><div class="card-c">
+      ${st.top3.length===0?`<p class="muted small" style="text-align:center;padding:20px 0">Pas encore de données.</p>`:
+      `<div class="top3">${st.top3.map((t,i)=>`<div class="peak" style="--o:${1-i*0.25}"><div class="xs muted">#${i+1}</div><div class="kpi-v num">${t.full}</div><div class="small muted" style="margin-top:4px">${t.count} occurrence${plural(t.count)} · <span class="primary-text bold">${t.pct.toFixed(1)}%</span></div></div>`).join("")}</div>`}
+    </div></div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">Analyse quantitative des fonctions (Modèle ABC)</div></div><div class="card-c scroll-x">
+      <table class="tbl" style="min-width:420px"><thead><tr><th>Fonction ABA</th><th>Occurrences avec impact</th><th>Proportion clinique</th></tr></thead><tbody>
+      ${st.fnChart.map(r=>`<tr><td class="bold">${esc(ABA_FUNCTION_LABELS[r.fonction])}</td><td class="num">${r.count}</td><td class="num">${r.pct.toFixed(1)}%</td></tr>`).join("")}</tbody></table>
+    </div></div>
+    <div class="grid2c">
+      <div class="card print-card"><div class="card-h"><div class="card-t">Répartition horaire cumulée</div></div><div class="card-c">${chartSlot(W=>lineChart(st.per.map(b=>({x:b.chart,y:b.count})),{fulls:st.per.map(b=>b.full),W}))}</div></div>
+      <div class="card print-card"><div class="card-h"><div class="card-t">Prédominance des fonctions ABA</div></div><div class="card-c">${chartSlot(W=>hbar(st.fnChart.map(f=>({label:f.fonction,value:f.count})),{labelW:110,W}))}</div></div>
+    </div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">${ic("flame")} Focus intensité haute (4-5) — répartition horaire</div></div><div class="card-c chart">
+      ${st.highTotal===0?`<p class="muted small" style="text-align:center;padding:30px 0">Aucune crise sévère (intensité 4-5) enregistrée pour ce résident.</p>`:
+      chartSlot(W=>hbar(st.per.map(b=>({label:b.chart,value:b.high})),{labelW:70,rowH:24,color:"oklch(0.55 0.24 27)",fullLabels:st.per.map(b=>b.full),W}))}
+    </div></div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">${ic("steth")} Synthèse et recommandations professionnelles</div></div><div class="card-c">
+      ${st.total===0?`<p class="muted small" style="text-align:center;padding:20px 0">Aucune observation enregistrée pour ${esc(res)}. La synthèse s'affichera dès la première saisie.</p>`:`
+      <div class="section"><h3>Conclusions cliniques</h3><p>L'évaluation fonctionnelle standardisée met en évidence un volume cumulé de <b>${st.total} comportement${plural(st.total)} défi${plural(st.total)}</b> pour <b>${esc(res)}</b>, réparti(s) sur <b>${st.active} jour${plural(st.active)} actif${plural(st.active)}</b>, avec une intensité moyenne de <b>${st.avgI.toFixed(1)}/5</b>.</p></div>
+      <div class="section"><h3>Analyse des paramètres temporels</h3>
+        ${st.top3.length===0?`<p class="muted">Trop peu de données horaires pour dégager une prédictibilité temporelle.</p>`:`
+        <p>Les données ont été agrégées pour mettre en évidence les pics de vulnérabilité globaux. Les ${st.top3.length} créneau${st.top3.length>1?"x les plus représentés sont":" le plus représenté est"} :</p>
+        <ul style="margin:8px 0 0;padding-left:4px;list-style:none">${st.top3.map((t,i)=>`<li><span class="primary-text">•</span> <b>${rangs[i]}</b> entre <b>${t.full}</b> (représentant <b>${t.pct.toFixed(0)}%</b> des occurrences totales).</li>`).join("")}</ul>
+        ${st.top3.length>=2?`<p style="margin-top:8px">${sig?`Au total, ces ${st.top3.length} créneaux concentrent à eux seuls <b class="primary-text">${top3Pct.toFixed(0)}%</b> des comportements-défis, ce qui indique une <b>prédictibilité temporelle significative</b> sur laquelle s'appuyer.`:`Au total, ces ${st.top3.length} créneaux concernent à eux seuls <b class="primary-text">${top3Pct.toFixed(0)}%</b> des comportements défis, ce qui peut s'éloigner d'une répartition aléatoire, mais <b>manque de significativité statistique claire</b> à ce jour.`}</p>`:""}`}
+      </div>
+      <div class="section"><h3>Focus intensité haute (4-5)</h3>
+        ${st.highTotal===0?`<p class="muted">Aucune crise sévère enregistrée : l'intensité observée reste modérée (≤ 3).</p>`:
+        `<p>Sur l'ensemble des observations, <b>${st.highTotal} crise${plural(st.highTotal)} de forte intensité (4-5)</b> ont été relevées, soit <b class="primary-text">${(st.highTotal/st.total*100).toFixed(0)}%</b> du volume total.${st.topHigh?` <b>Focus intensité haute :</b> <b class="primary-text">${st.topHigh.pct.toFixed(0)}%</b> des crises sévères se concentrent sur le créneau de <b>${st.topHigh.full}</b>, à considérer en priorité pour l'aménagement environnemental et la sécurisation.`:""}</p>`}
+      </div>
+      <div class="section"><h3>Préconisations interventionnelles</h3>
+        <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px">
+          <li><b>Aménagement environnemental ciblé :</b> initier des routines d'apaisement ou de redirection <b>15 à 30 minutes avant</b> les créneaux critiques identifiés ci-dessus.</li>
+          <li><b>Action sur la fonction :</b> les protocoles d'extinction ou d'apprentissage (renforcement différentiel) doivent répondre en priorité à la <b>fonction prédominante</b>${st.dominant&&st.dominant.count>0?` identifiée ici : <span class="primary-text bold">${esc(ABA_FUNCTION_LABELS[st.dominant.fonction])}</span> (${st.dominant.pct.toFixed(0)}% des impacts fonctionnels).`:` — à déterminer après enrichissement des saisies.`}</li>
+        </ol>
+      </div>`}
+    </div></div>
+    <div class="card print-card"><div class="card-h"><div class="card-t">${ic("notebook")} Hypothèse de fonction / Notes de synthèse</div></div><div class="card-c">
+      <textarea class="inp no-print" id="notes" rows="6" placeholder="Conclusions du psychologue/superviseur : hypothèse fonctionnelle, objectifs, plan d'intervention…">${esc(notes)}</textarea>
+      <div class="print-only" style="white-space:pre-wrap;font-size:.9rem">${esc(notes)||"—"}</div>
+      <p class="xs muted no-print" style="margin-top:8px">Enregistré automatiquement, chiffré sur cet appareil.</p>
+    </div></div>
+  </div>`;
+}
+PAGE_INIT.rapport=()=>{
+  bindGran();
+  const n=$("#notes"); if(n) n.oninput=()=>{ D().notes[selected()]=n.value; scheduleSave(); const p=n.parentElement.querySelector(".print-only"); if(p) p.textContent=n.value||"—"; };
+};
+
+/* =====================================================================
+   PAGE : DOULEUR (GED-DI)
+   ===================================================================== */
+function newGedDraft(){ return {type:null, date:todayISO(), rempliPar:D().prefs.rempliPar||"", periode:"", contexte:"", items:GED_ITEMS.map(()=>null)}; }
+function painList(){ const r=selected(); return D().pain.filter(p=>p.resident===r).sort((a,b)=> a.date===b.date ? (b.created_at>a.created_at?1:-1) : (b.date>a.date?1:-1)); }
+function pageDouleur(){
+  if(!selected()) return noResident("Choisissez un profil dans l'en-tête pour remplir une grille GED-DI.");
+  if(!S.gedDraft || S.gedDraft.resident!==selected()){ S.gedDraft=newGedDraft(); S.gedDraft.resident=selected(); }
+  const g=S.gedDraft, list=painList(), all=D().pain;
+  const sortedAsc=[...list].sort((a,b)=> a.date===b.date ? a.created_at.localeCompare(b.created_at) : a.date.localeCompare(b.date));
+  const filled=g.items.filter(v=>v!==null).length, complete=g.type&&filled===GED_ITEMS.length;
+  return `<div class="page narrow print-area">
+   <div class="no-print stack" style="gap:24px">
+    <div class="row between" style="align-items:flex-start"><div><h1 class="row" style="gap:8px"><span style="width:24px;height:24px;color:var(--primary);display:inline-flex">${ic("heart")}</span> Douleur (GED-DI)</h1><p class="muted small">Grille GED-DI modifiée pour les TSA.</p></div>${residentBadge()}</div>
+    <div class="card"><div class="card-h"><div class="card-t">Nouvelle grille</div></div><div class="card-c stack" style="gap:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ged-type">
+        ${Object.entries(GED_TYPE_LABELS).map(([k,l])=>`<button type="button" class="btn ${g.type===k?"":"outline"}" style="height:56px;white-space:normal" data-act="ged-type" data-t="${k}">${l}</button>`).join("")}
+      </div>
+      <div class="grid2">
+        <div><label class="lbl">Date</label><input class="inp" autocomplete="off" spellcheck="false" type="date" id="g-date" value="${esc(g.date)}"></div>
+        <div><label class="lbl">Rempli par</label><input class="inp" id="g-par" value="${esc(g.rempliPar)}" autocomplete="off"></div>
+      </div>
+      <div><label class="lbl">Période d'observation</label><p class="xs muted" style="margin-bottom:6px">Période d'observation à définir pour chaque situation (demi-journée, journée, semaine…), préciser :</p><input class="inp" id="g-per" value="${esc(g.periode)}" autocomplete="off"></div>
+      <div class="legend"><b>0</b> = non observé · <b>1</b> = observé à l'occasion · <b>2</b> = observé souvent mais pas de façon continuelle · <b>3</b> = observé très souvent, presque continuellement · <b>NA</b> = non applicable</div>
+      <ol class="clean stack">${GED_ITEMS.map((label,i)=>`<li class="ged-item ${g.items[i]!==null?"done":""}" id="gi-${i}"><div class="small"><span class="primary-text bold" style="margin-right:6px">${i+1}.</span>${esc(label)}</div><div class="ged-vals">${GED_VALUES.map(v=>`<button type="button" class="${g.items[i]===v?"on":""}" data-act="ged-val" data-i="${i}" data-v="${v}">${v}</button>`).join("")}</div></li>`).join("")}</ol>
+      <div><label class="lbl">Contexte</label><textarea class="inp" autocomplete="off" spellcheck="false" id="g-ctx" rows="3">${esc(g.contexte)}</textarea></div>
+      <div class="row"><span class="small muted" id="g-count">${filled}/${GED_ITEMS.length} items cotés</span><button class="btn lg ml-auto" id="g-submit" data-act="ged-submit" ${complete?"":"disabled"}>Valider la grille</button></div>
+    </div></div>
+    <div class="card"><div class="card-h"><div class="card-t">Historique</div><button class="btn outline" onclick="window.print()" ${list.length?"":"disabled"}>${ic("printer")} Exporter l'historique en PDF</button></div><div class="card-c">
+      ${list.length===0?`<p class="small muted">Aucune grille enregistrée pour ${esc(selected())}.</p>`:
+      `<ul class="clean list-div">${list.map(a=>{ const r=evaluate(a,all); return `<li class="row" style="padding:12px 0;gap:8px 12px">
+        <div class="small bold" style="min-width:90px">${fmtDate(a.date)}</div><div class="small muted" style="flex:1;min-width:140px">${GED_TYPE_LABELS[a.type]}</div>
+        <div class="small bold num">${a.score}/${GED_MAX_SCORE}</div><div class="small num" style="width:48px;text-align:center">${r.kind==="ecart"?formatEcart(r.ecart):"—"}</div>${resultBadge(r)}
+        <div class="row ml-auto" style="gap:4px"><button class="btn ghost icon" data-act="ged-view" data-id="${esc(a.id)}" aria-label="Voir">${ic("eye")}</button><button class="btn ghost icon" data-act="ged-del" data-id="${esc(a.id)}" aria-label="Supprimer">${ic("trash")}</button></div></li>`; }).join("")}</ul>`}
+    </div></div>
+   </div>
+   <div class="print-only">
+    <h1 style="font-size:20px">Grille GED-DI modifiée TSA — historique</h1>
+    <p style="margin:6px 0 12px">Résident : <b>${esc(selected())}</b> · Export du ${new Date().toLocaleDateString("fr-FR")}</p>
+    <table class="print-tbl"><thead><tr><th>Date</th><th>Type</th><th>Score</th><th>Écart vs grille de base</th><th>Indicateur</th></tr></thead><tbody>
+    ${sortedAsc.map(a=>{ const r=evaluate(a,all); const ind=r.kind==="base"?"Référence":r.kind==="no_base"?"Pas de base de référence":r.douleur?"Témoigne de douleur":"Non significatif"; return `<tr><td>${fmtDate(a.date)}</td><td>${GED_TYPE_LABELS[a.type]}</td><td>${a.score}/${GED_MAX_SCORE}</td><td>${r.kind==="ecart"?formatEcart(r.ecart):"—"}</td><td>${ind}</td></tr>`; }).join("")}
+    </tbody></table>
+    <p style="font-size:11px;margin-top:10px">Écart calculé par rapport à la grille d'état de base la plus récente à la date de la grille. Écart &gt; 6 points (à la hausse ou à la baisse) : témoigne de douleur. NA compté 0.</p>
+   </div>
+  </div>`;
+}
+function gedRefreshFooter(){
+  const g=S.gedDraft, filled=g.items.filter(v=>v!==null).length;
+  $("#g-count").textContent=`${filled}/${GED_ITEMS.length} items cotés`;
+  $("#g-submit").disabled=!(g.type && filled===GED_ITEMS.length);
+}
+PAGE_INIT.douleur=()=>{
+  const g=S.gedDraft; if(!g) return;
+  const bind=(id,k)=>{ const el=$(id); if(el) el.oninput=()=>{ g[k]=el.value; }; };
+  bind("#g-date","date"); bind("#g-par","rempliPar"); bind("#g-per","periode"); bind("#g-ctx","contexte");
+};
+ACTIONS["ged-type"]=(t)=>{ S.gedDraft.type=t.dataset.t; document.querySelectorAll("#ged-type .btn").forEach(b=>b.classList.toggle("outline", b.dataset.t!==S.gedDraft.type)); gedRefreshFooter(); };
+ACTIONS["ged-val"]=(t)=>{ const i=+t.dataset.i, v=t.dataset.v==="NA"?"NA":+t.dataset.v; S.gedDraft.items[i]=v;
+  const li=$("#gi-"+i); li.classList.add("done"); li.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===t)); gedRefreshFooter(); };
+ACTIONS["ged-submit"]=()=>{
+  const g=S.gedDraft;
+  if(!g.type) return toast("Choisissez le type de grille.", true);
+  if(g.items.some(v=>v===null)) return toast("Tous les items doivent être cotés (NA accepté).", true);
+  if(!g.date) return toast("Indiquez la date.", true);
+  const rec={id:uid(), resident:selected(), date:g.date, rempli_par:g.rempliPar.trim(), type:g.type, periode_observation:g.periode.trim(), contexte:g.contexte.trim(), items:[...g.items], score:computeScore(g.items), created_at:new Date().toISOString()};
+  D().pain.push(rec); D().prefs.rempliPar=rec.rempli_par; scheduleSave();
+  S.gedDraft=null; renderMain(); window.scrollTo(0,0);
+  const r=evaluate(rec, D().pain);
+  openModal(`<h2 class="row" style="gap:8px"><span style="width:20px;height:20px;color:var(--primary);display:inline-flex">${ic("ok")}</span>Grille enregistrée</h2>
+    <div class="stack small"><div>${GED_TYPE_LABELS[rec.type]} du ${fmtDate(rec.date)}</div>
+    <div style="font-size:2rem;font-weight:700">${rec.score}<span class="muted" style="font-size:1rem">/${GED_MAX_SCORE}</span></div>
+    ${r.kind==="no_base"?resultBadge(r):""}
+    ${r.kind==="ecart"?`<div class="muted">Grille de base de référence : ${fmtDate(r.base.date)} — score ${r.base.score}</div><div class="row"><span style="font-size:1.25rem;font-weight:600">Écart : ${formatEcart(r.ecart)}</span>${resultBadge(r)}</div>`:""}
+    <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" data-act="close-modal">Fermer</button></div></div>`);
+};
+ACTIONS["ged-view"]=(t)=>{
+  const a=D().pain.find(p=>p.id===t.dataset.id); if(!a) return; const r=evaluate(a, D().pain);
+  openModal(`<h2>${GED_TYPE_LABELS[a.type]} — ${fmtDate(a.date)}</h2><div class="stack small">
+    <div class="row"><span class="bold">Score : ${a.score}/${GED_MAX_SCORE}</span>${r.kind==="ecart"?`<span>Écart : ${formatEcart(r.ecart)} (base du ${fmtDate(r.base.date)}, ${r.base.score})</span>`:""}${a.type!=="etat_de_base"?resultBadge(r):""}</div>
+    <div class="muted">${a.rempli_par?`<div>Rempli par : ${esc(a.rempli_par)}</div>`:""}${a.periode_observation?`<div>Période : ${esc(a.periode_observation)}</div>`:""}</div>
+    <ol class="clean list-div" style="border:1px solid var(--border);border-radius:8px">${GED_ITEMS.map((l,i)=>`<li class="row" style="padding:6px 10px;flex-wrap:nowrap"><span style="flex:1"><span class="muted" style="margin-right:4px">${i+1}.</span>${esc(l)}</span><span class="bold" style="width:32px;text-align:right">${esc(a.items[i]??"—")}</span></li>`).join("")}</ol>
+    ${a.contexte?`<div><span class="bold">Contexte :</span> ${esc(a.contexte)}</div>`:""}
+    <div class="row" style="justify-content:flex-end"><button class="btn" data-act="close-modal">Fermer</button></div></div>`);
+};
+ACTIONS["ged-del"]=(t)=>{ if(!confirm("Supprimer cette grille ? Cette action est définitive.")) return; D().pain=D().pain.filter(p=>p.id!==t.dataset.id); scheduleSave(); renderMain(); toast("Grille supprimée."); };
+
+/* =====================================================================
+   PAGE : PARAMÈTRES & SAUVEGARDE
+   ===================================================================== */
+function pageParametres(){
+  const d=D();
+  return `<div class="page narrow">
+    <div><h1>Paramètres & sauvegarde</h1><p class="muted small">Sécurité, sauvegardes et transfert entre appareils.</p></div>
+    <div class="card"><div class="card-h"><div class="card-t">${ic("shield")} Sécurité</div></div><div class="card-c stack small">
+      <p>Les données sont stockées uniquement sur cet appareil (chiffrées sur le disque avec une clé propre à l'appareil). Cette page ne peut établir aucune connexion réseau.</p>
+      <p>L'appli s'ouvre sans mot de passe : <b>toute personne ayant accès à l'appareil déverrouillé peut consulter les données</b>. Le code de verrouillage du téléphone ou de la session Windows est donc la protection principale.</p>
+      <p class="muted">Contenu actuel : ${d.residents.length} profil(s), ${d.entries.length} observation(s) ABC, ${d.pain.length} grille(s) GED-DI.</p>
+      <div class="row"><button class="btn outline" data-act="erase">${ic("trash")} Effacer toutes les données de cet appareil</button></div>
+    </div></div>
+    <div class="card"><div class="card-h"><div class="card-t">${ic("download")} Sauvegarde</div></div><div class="card-c stack small">
+      <p>Exportez régulièrement une sauvegarde, protégée par un mot de passe que vous choisissez à l'export, et rangez-la sur le serveur ou l'espace sécurisé de la structure. <b>Si le navigateur est réinitialisé ou l'appareil perdu, seule une sauvegarde permet de récupérer les données.</b></p>
+      <p class="muted">${d.prefs.lastBackup?`Dernière sauvegarde exportée : ${new Date(d.prefs.lastBackup).toLocaleString("fr-FR")}`:"Aucune sauvegarde exportée pour l'instant."}</p>
+      <div class="row"><button class="btn" data-act="export">${ic("download")} Exporter une sauvegarde</button></div>
+    </div></div>
+    <div class="card"><div class="card-h"><div class="card-t">${ic("upload")} Importer / transférer</div></div><div class="card-c stack small">
+      <p>Pour passer des données du téléphone au PC (ou l'inverse) : exportez la sauvegarde sur un appareil, puis importez-la sur l'autre. Il faut le mot de passe choisi lors de l'export.</p>
+      <div class="row"><label class="btn outline" style="cursor:pointer">${ic("upload")} Choisir un fichier de sauvegarde<input type="file" id="imp" accept=".abcbak,application/json" class="hidden"></label></div>
+    </div></div>
+    <div class="card"><div class="card-h"><div class="card-t">Démonstration</div></div><div class="card-c stack small">
+      <p>Le profil « Profil fictif » contient un mois d'observations ABC et des grilles GED-DI fictives pour présenter l'outil aux équipes. Vous pouvez le supprimer depuis la liste des profils (croix), ou le recréer / réinitialiser ici.</p>
+      <div class="row"><button class="btn secondary" data-act="demo">Recréer / réinitialiser le profil fictif</button></div>
+    </div></div>
+    ${footNote}
+  </div>`;
+}
+PAGE_INIT.parametres=()=>{
+  const imp=$("#imp"); imp.onchange=async()=>{ const f=imp.files[0]; imp.value=""; if(f) importFlow(f); };
+};
+function download(name, text){
+  const url=URL.createObjectURL(new Blob([text],{type:"application/octet-stream"}));
+  const a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+ACTIONS["erase"]=eraseAll;
+ACTIONS["export"]=()=>{
+  openModal(`<h2>Exporter une sauvegarde</h2><form autocomplete="off" id="f-exp" class="stack small">
+    <p>Le fichier de sauvegarde est chiffré avec un mot de passe que vous choisissez maintenant (8 caractères minimum). Il sera demandé pour le réimporter. <b>Sans lui, la sauvegarde est inutilisable</b> : notez-le en lieu sûr.</p>
+    <div><label class="lbl">Mot de passe de la sauvegarde</label><input class="inp" type="password" id="ex1" minlength="8" required autocomplete="off"></div>
+    <div><label class="lbl">Confirmer</label><input class="inp" type="password" id="ex2" minlength="8" required autocomplete="off"></div>
+    <p class="xs" id="ex-msg"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close-modal">Annuler</button><button class="btn" type="submit">${ic("download")} Exporter</button></div></form>`);
+  $("#f-exp").onsubmit=async(e)=>{
+    e.preventDefault(); const m=(t)=>$("#ex-msg").textContent=t, a=$("#ex1").value, b=$("#ex2").value;
+    if(a.length<8) return m("8 caractères minimum."); if(a!==b) return m("Les deux mots de passe ne correspondent pas.");
+    m("Chiffrement…");
+    D().prefs.lastBackup=Date.now();
+    const salt=crypto.getRandomValues(new Uint8Array(16)), k=await deriveKey(a, salt, PBKDF2_ITER), {iv,ct}=await encryptObj(k, D());
+    download(`abc-tracker-sauvegarde-${todayISO()}.abcbak`, JSON.stringify({app:"abc-tracker-local", v:1, salt:b64(salt), iter:PBKDF2_ITER, iv, ct, exported:new Date().toISOString()}));
+    await saveNow(); closeModal(); renderMain(); toast("Sauvegarde chiffrée exportée.");
+  };
+  setTimeout(()=>$("#ex1")&&$("#ex1").focus(),50);
+};
+async function importFlow(file){
+  let pkg; try{ pkg=JSON.parse(await file.text()); if(pkg.app!=="abc-tracker-local"||!pkg.ct) throw 0; }catch(e){ return toast("Ce fichier n'est pas une sauvegarde ABC Tracker.", true); }
+  openModal(`<h2>Importer une sauvegarde</h2><form autocomplete="off" id="f-imp" class="stack small">
+    <p>Fichier : <b>${esc(file.name)}</b>${pkg.exported?` (exporté le ${new Date(pkg.exported).toLocaleString("fr-FR")})`:""}</p>
+    <div><label class="lbl">Mot de passe de cette sauvegarde</label><input class="inp" type="password" id="imp-p" required autocomplete="off"></div>
+    <p class="muted"><b>Fusionner</b> ajoute les profils, observations et grilles absents de cet appareil. <b>Remplacer</b> efface les données actuelles de l'appareil et les remplace par la sauvegarde.</p>
+    <p class="muted xs" id="imp-msg"></p>
+    <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="close-modal">Annuler</button><button type="submit" class="btn outline" name="mode" value="replace">Remplacer</button><button type="submit" class="btn" name="mode" value="merge">Fusionner</button></div>
+  </form>`);
+  $("#f-imp").onsubmit=async(e)=>{
+    e.preventDefault(); const mode=e.submitter?e.submitter.value:"merge";
+    $("#imp-msg").textContent="Déchiffrement…";
+    let data; try{ const k=await deriveKey($("#imp-p").value, unb64(pkg.salt), pkg.iter||PBKDF2_ITER); data=await decryptObj(k, pkg.iv, pkg.ct); }
+    catch(err){ $("#imp-msg").textContent="Mot de passe incorrect pour cette sauvegarde."; return; }
+    if(mode==="replace"){
+      if(!confirm("Remplacer TOUTES les données de cet appareil par la sauvegarde ?")) return;
+      const keepLock=D().prefs.lockMinutes;
+      S.data=Object.assign(emptyData(), data); S.data.prefs=Object.assign(emptyData().prefs, data.prefs||{}, {lockMinutes:keepLock});
+    } else {
+      const d=D(); let nE=0,nP=0,nR=0;
+      for(const r of data.residents||[]) if(!d.residents.includes(r)){ d.residents.push(r); nR++; }
+      const eIds=new Set(d.entries.map(x=>x.id)); for(const x of data.entries||[]) if(!eIds.has(x.id)){ d.entries.push(x); nE++; }
+      const pIds=new Set(d.pain.map(x=>x.id)); for(const x of data.pain||[]) if(!pIds.has(x.id)){ d.pain.push(x); nP++; }
+      for(const [k,v] of Object.entries(data.notes||{})) if(!d.notes[k]) d.notes[k]=v; else if(v && v!==d.notes[k] && !d.notes[k].includes(v)) d.notes[k]+= "\n\n--- (importé) ---\n"+v;
+      if(!d.prefs.selected && d.residents.length) d.prefs.selected=d.residents[0];
+      toast(`Fusion : ${nR} profil(s), ${nE} observation(s), ${nP} grille(s) ajoutés.`);
+    }
+    await flushSave(); closeModal(); renderShell(); renderMain(); if(mode==="replace") toast("Données remplacées par la sauvegarde.");
+  };
+  setTimeout(()=>$("#imp-p")&&$("#imp-p").focus(),50);
+}
+/* ---------- Profil de démonstration ---------- */
+const DEMO_NAME="Profil fictif";
+function seedDemo(d){
+  if(!d.residents.includes(DEMO_NAME)) d.residents.push(DEMO_NAME);
+  const iso=(da)=>{ const x=new Date(); x.setDate(x.getDate()-da); return `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}`; };
+  // Générateur pseudo-aléatoire déterministe : même jeu de données à chaque fois.
+  let seed=20261030; const rnd=()=>{ seed=(seed*1103515245+12345)%2147483648; return seed/2147483648; };
+  const pick=(a)=>a[Math.floor(rnd()*a.length)];
+  // Scénarios typiques : [heures possibles, comportements, antécédents, conséquences, fonctions, lieux, intensités, commentaires]
+  const S1=[["09:45","10:00","10:15","10:30","10:45","11:00"],[4,3,0,2],[0,0,1],[2],["Échappement"],["Atelier","Atelier","Activité cuisine"],[3,4,4,5],["Refus dès la présentation de la consigne.","A repoussé le matériel de l'atelier.","Retrait de la tâche par l'équipe.",""]];
+  const S2=[["16:45","17:00","17:15","17:30","17:45"],[3,0,4],[2],[2,0],["Échappement"],["Salon","Couloir","Salle à manger"],[3,4,5],["Transition vers le repas difficile.","Refus de quitter le salon.",""]];
+  const S3=[["14:00","14:30","15:00","15:30"],[1,3],[4],[0],["Attention"],["Chambre","Salon"],[2,2,3],["Seul pendant le temps calme.","Se calme dès qu'un adulte s'approche.",""]];
+  const S4=[["20:00","20:30","21:00"],[5],[6,5],[3],["Sensoriel"],["Chambre"],[1,2],["Balancements avant le coucher.","Auto-régulation, pas d'intervention nécessaire.",""]];
+  const S5=[["13:00","13:30","15:30"],[3,2],[3],[1],["Tangible"],["Salle à manger","Salon"],[2,3],["Tablette retirée à la fin du temps prévu.",""]];
+  for(let da=27; da>=0; da--){
+    const dow=new Date(Date.now()-da*864e5).getDay(), weekend=(dow===0||dow===6);
+    const plan=[];
+    if(!weekend && rnd()<0.75) plan.push(S1);
+    if(rnd()<0.55) plan.push(S2);
+    if(rnd()<0.25) plan.push(S3);
+    if(rnd()<0.2) plan.push(S4);
+    if(rnd()<0.15) plan.push(S5);
+    for(const sc of plan){
+      const [hs,cs,as,qs,fs,ls,is,cms]=sc;
+      d.entries.push({id:uid(), date:iso(da), heure:pick(hs), resident:DEMO_NAME, comportement:COMPORTEMENTS[pick(cs)], intensite:pick(is), lieu:pick(ls), antecedent:ANTECEDENTS[pick(as)], consequence:CONSEQUENCES[pick(qs)], fonctions:[...fs], commentaire:pick(cms), createdAt:Date.now()-da*864e5});
+    }
+  }
+  // Grilles GED-DI : illustrent chaque cas (écart > 6 à la hausse, à la baisse, écart de 6 non significatif, nouvelle base).
+  const grid=(da,type,vals,ctx,per)=>{ const items=GED_ITEMS.map((_,k)=> k in vals ? vals[k] : 0); items[25]= 25 in vals ? vals[25] : "NA";
+    d.pain.push({id:uid(), resident:DEMO_NAME, date:iso(da), rempli_par:"Équipe (démo)", type, periode_observation:per, contexte:ctx, items, score:computeScore(items), created_at:new Date(Date.now()-da*864e5).toISOString()}); };
+  grid(27,"etat_de_base",{0:1,3:1,4:1,6:1,12:1,14:2,26:1},"Grille de référence, période calme.","Semaine");
+  grid(20,"trouble_du_comportement",{0:2,1:1,2:2,3:2,4:2,6:2,7:1,9:1,12:2,14:2,17:1,26:1},"Agitation inhabituelle, porte souvent la main à la joue.","Journée");
+  grid(17,"trouble_du_comportement",{13:1},"Très en retrait, inactif, refuse les sollicitations.","Demi-journée");
+  grid(14,"trouble_du_comportement",{0:2,3:2,4:1,6:1,7:1,12:2,14:3,26:2},"Plus irritable que d'habitude après un week-end en famille.","Journée");
+  grid(10,"etat_de_base",{3:1,4:1,6:1,14:2,26:1},"Nouvelle grille de référence après les soins dentaires.","Semaine");
+  grid(6,"trouble_du_comportement",{3:1,4:1,14:2,26:1},"Contrôle de routine.","Journée");
+  grid(2,"trouble_du_comportement",{0:2,2:1,3:2,4:1,6:2,7:1,12:1,14:2,18:1},"Se soustrait au toucher au niveau du ventre, mange peu.","Journée");
+  if(!d.notes[DEMO_NAME]) d.notes[DEMO_NAME]="Hypothèse de fonction (exemple) : comportements majoritairement maintenus par l'échappement aux consignes en atelier (10h-11h) et lors des transitions vers le repas (17h-18h).\nPistes : séquencer la consigne, annonce visuelle des transitions 15 min avant, renforcer la coopération.\nÀ surveiller : plusieurs grilles GED-DI témoignent d'une douleur possible (voir l'onglet Douleur).";
+  if(!d.prefs.selected) d.prefs.selected=DEMO_NAME;
+}
+ACTIONS["demo"]=()=>{
+  const d=D();
+  if(d.residents.includes(DEMO_NAME)){
+    if(!confirm(`Le profil « ${DEMO_NAME} » existe déjà. Le réinitialiser avec des données de démonstration neuves ?`)) return;
+    d.entries=d.entries.filter(e=>e.resident!==DEMO_NAME); d.pain=d.pain.filter(p=>p.resident!==DEMO_NAME); delete d.notes[DEMO_NAME];
+  }
+  seedDemo(d); d.prefs.selected=DEMO_NAME; S.gedDraft=null; scheduleSave(); renderShell(); renderMain(); toast(`Profil « ${DEMO_NAME} » prêt pour la démonstration.`);
+};
+
+/* ---------- Fenêtre modale ---------- */
+function openModal(html){ closeModal(); const bg=document.createElement("div"); bg.className="modal-bg"; bg.id="modal"; bg.innerHTML=`<div class="modal" role="dialog" aria-modal="true">${html}</div>`; bg.addEventListener("mousedown",(e)=>{ if(e.target===bg) closeModal(); }); document.body.appendChild(bg); }
+function closeModal(){ const m=$("#modal"); if(m) m.remove(); }
+ACTIONS["close-modal"]=closeModal;
+document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ closeModal(); if(S.popOpen){ S.popOpen=false; renderResidentSelector(); } } });
+
+/* ---------- Démarrage ---------- */
+/* Mode application (installable) : uniquement quand la page est servie en HTTPS.
+   Le service worker ne sert que les fichiers de l'appli depuis le cache, pour fonctionner hors ligne. */
+if (location.protocol === "https:" || location.hostname === "localhost") {
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+(function boot(){
+  if(!window.crypto || !crypto.subtle || !window.indexedDB){
+    $("#root").innerHTML=`<div class="lock"><div class="card"><h1>Navigateur non compatible</h1><p class="muted small" style="margin-top:8px">Ce navigateur ne permet pas le chiffrement local dans ce mode d'ouverture. Ouvrez le fichier avec Chrome ou Edge à jour. Sur Android, voir la notice d'installation.</p></div></div>`;
+    return;
+  }
+  openVault();
+})();
+</script>
+</body>
+</html>
